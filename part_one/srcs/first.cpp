@@ -1,28 +1,28 @@
 #include <util.hpp>
 #include <iostream>
 int main() {
-  cv::Mat image = cv::imread("images/split.png");
-  cv::imshow("Image", image);
+  cv::VideoCapture cap{"images/video.mp4"};
+  auto width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
+  auto height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
 
-  cv::Mat channels[4];
-  cv::split(image, channels);
-
-  // BGR
-  cv::imshow("Blue", channels[0]);
-  cv::imshow("Green", channels[1]);
-  cv::imshow("Red", channels[2]);
-
-  cv::Mat all[3];
-  all[0] = channels[2];
-  all[1] = channels[1];
-  all[2] = channels[0];
-
-  cv::Mat rgb;
-  cv::merge(all, 3, rgb);
-  cv::imshow("rgb", rgb);
+  cv::VideoWriter out{"out.mp4", cv::VideoWriter::fourcc('M', 'J', 'P', 'G'),
+                      20, cv::Size(width, height)};
+  cv::Mat frame;
+  while (cap.isOpened()) {
+    cap >> frame;
+    if (frame.empty()) break;
+    cv::imshow("frame", frame);
+    cv::Mat gray;
+    cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
+    out.write(gray);
+    cv::waitKey(20);
+  }
 
   cv::waitKey(0);
   cv::destroyAllWindows();
+
+  cap.release();
+  out.release();
 
   return 0;
 }
