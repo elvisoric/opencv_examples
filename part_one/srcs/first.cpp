@@ -2,7 +2,6 @@
 #include <iostream>
 int main() {
   auto original = cv::imread("images/coins.jpeg");
-  cv::imshow("Original", original);
 
   cv::Mat gray;
   cv::cvtColor(original, gray, cv::COLOR_BGR2GRAY);
@@ -20,15 +19,23 @@ int main() {
   cv::erode(erodedImage, erodedImage, kernel);
   cv::imshow("ErodedImage", erodedImage);
 
-  cv::Mat labels;
-  auto numberOfComponentes = cv::connectedComponents(erodedImage, labels);
-  std::cout << "Number of components: " << numberOfComponentes << std::endl;
-  // Background is treated as one component
-  std::cout << "Number of coins: " << numberOfComponentes - 1 << std::endl;
+  std::vector<std::vector<cv::Point>> contours;
+  std::vector<cv::Vec4i> hierarchy;
 
-  // Show all components separatly
-  // for (int i = 1; i < numberOfComponentes; ++i)
-  //   cv::imshow(std::to_string(i), labels == i);
+  cv::findContours(erodedImage, contours, hierarchy, cv::RETR_LIST,
+                   cv::CHAIN_APPROX_SIMPLE);
+
+  std::cout << "Number of coins: " << contours.size() << std::endl;
+  cv::drawContours(original, contours, -1, cv::Scalar{0, 240, 0}, 5);
+  for (auto& contour : contours) {
+    auto moment = cv::moments(contour);
+    auto x = static_cast<int>(moment.m10 / moment.m00);
+    auto y = static_cast<int>(moment.m01 / moment.m00);
+
+    cv::circle(original, cv::Point(x, y), 10, cv::Scalar{0, 0, 230}, -1);
+  }
+
+  cv::imshow("Original", original);
 
   cv::waitKey(0);
   cv::destroyAllWindows();
