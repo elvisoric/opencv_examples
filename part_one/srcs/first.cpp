@@ -1,17 +1,19 @@
 #include <util.hpp>
 #include <iostream>
 int main() {
-  cv::Mat image = cv::imread("images/number_zero.jpg");
-  image.at<cv::Vec3b>(0, 0) = cv::Vec3b{0, 0, 250};
-  image(cv::Range(2, 4), cv::Range(4, 9)).setTo(cv::Scalar(0, 0, 250));
-
+  cv::Mat image = cv::imread("images/color.jpg");
   cv::imshow("Image", image);
 
-  auto grayImage = cv::imread("images/number_zero.jpg", cv::IMREAD_GRAYSCALE);
-  grayImage.at<uchar>(0, 0) = 123;
-  grayImage.at<uchar>(2, 9) = 123;
+  auto crop = image(cv::Range(350, 650), cv::Range(300, 500));
+  cv::imshow("Image crop", crop);
 
-  cv::imshow("Image gray", grayImage);
+  cv::imwrite("crop.jpg", crop);
+
+  cv::Mat gray;
+  cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
+  cv::imshow("gray", gray);
+
+  cv::imwrite("gray.jpg", gray);
 
   cv::waitKey(0);
   cv::destroyAllWindows();
