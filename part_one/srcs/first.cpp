@@ -1,19 +1,25 @@
 #include <util.hpp>
 #include <iostream>
 int main() {
-  cv::Mat image = cv::imread("images/color.jpg");
+  cv::Mat image = cv::imread("images/split.png");
   cv::imshow("Image", image);
 
-  auto crop = image(cv::Range(350, 650), cv::Range(300, 500));
-  cv::imshow("Image crop", crop);
+  cv::Mat channels[4];
+  cv::split(image, channels);
 
-  cv::imwrite("crop.jpg", crop);
+  // BGR
+  cv::imshow("Blue", channels[0]);
+  cv::imshow("Green", channels[1]);
+  cv::imshow("Red", channels[2]);
 
-  cv::Mat gray;
-  cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
-  cv::imshow("gray", gray);
+  cv::Mat all[3];
+  all[0] = channels[2];
+  all[1] = channels[1];
+  all[2] = channels[0];
 
-  cv::imwrite("gray.jpg", gray);
+  cv::Mat rgb;
+  cv::merge(all, 3, rgb);
+  cv::imshow("rgb", rgb);
 
   cv::waitKey(0);
   cv::destroyAllWindows();
