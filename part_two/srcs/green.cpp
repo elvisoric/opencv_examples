@@ -1,93 +1,45 @@
 #include <iostream>
+
 #include <opencv2/opencv.hpp>
+using namespace cv;
 
-cv::Mat hsv;
+Mat pencilSketch(Mat image, int arguments = 0) {
+  Mat pencilSketchImage;
+  cv::Mat gray, bluredImage;
+  cv::GaussianBlur(image, bluredImage, cv::Size(3, 3), 0);
+  cv::cvtColor(bluredImage, gray, cv::COLOR_BGR2GRAY);
+  cv::Laplacian(gray, pencilSketchImage, image.depth(), 5);
+  cv::bitwise_not(pencilSketchImage, pencilSketchImage);
+  cv::threshold(pencilSketchImage, pencilSketchImage, 120, 255,
+                cv::THRESH_BINARY);
 
-double hueValue = 100;
-void onMouse(int action, int x, int y, int, void*) {
-  if (action == cv::EVENT_LBUTTONDOWN) {
-    std::cout << hsv.at<cv::Vec3b>(y, x) << std::endl;
-  }
+  return pencilSketchImage;
 }
 
-int main(int argc, char** argv) {
-  if (argc < 2) {
-    std::cout << "Please provide background as parameter" << std::endl;
-    return -1;
-  }
+Mat cartoonify(Mat image, int arguments = 0) {
+  Mat cartoonImage;
+  auto pencilImage = pencilSketch(image);
 
-  const auto windowName = "Window";
-  cv::namedWindow(windowName);
+  cv::Mat bluredImage;
+  cv::bilateralFilter(image, bluredImage, 35, 80, 80);
 
-  cv::setMouseCallback(windowName, onMouse);
+  cv::cvtColor(pencilImage, pencilImage, cv::COLOR_GRAY2BGR);
+  cv::bitwise_and(bluredImage, pencilImage, cartoonImage);
 
-  const auto backgorundSource = argv[1];
-  auto background = cv::imread(backgorundSource);
+  return cartoonImage;
+}
 
-  // auto image = cv::imread("images/green.jpg");
-  cv::resize(background, background, cv::Size(), 0.5, 0.5);
-  // cv::imshow(windowName, image);
-  int startPointX = 0;
-  int startPointY = 0;
-  cv::VideoCapture cap{1};
-  auto height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
-  auto width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
-  // auto height = image.rows;
-  // auto width = image.cols;
-  // auto crop = background(cv::Range(startPointY, height + startPointY),
-  //                        cv::Range(startPointX, width + startPointX));
+int main() {
+  cv::VideoCapture cap{0};
 
-  int counter = 40;
-  cv::Mat image, crop;
+  cv::Mat image;
   while (cap.isOpened()) {
     cap >> image;
     if (image.empty()) break;
-    if (counter != 0) {
-      cv::imshow("Result", image);
-      --counter;
-      if (counter == 0) {
-        crop = image.clone();
-      }
-    } else {
-      cv::cvtColor(image, hsv, cv::COLOR_BGR2HSV);
-      cv::Mat channels[3];
-      cv::Mat finalResultChannels[3];
-      cv::split(image, channels);
-
-      cv::Scalar lower{58, 70, 50};
-      cv::Scalar upper{76, 255, 255};
-
-      cv::Mat mask, foreMask;
-      cv::inRange(hsv, lower, upper, mask);
-      auto kernel =
-          cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(7, 7));
-      cv::dilate(mask, mask, kernel);
-      // cv::dilate(mask, mask, kernel);
-      cv::bitwise_not(mask, foreMask);
-
-      cv::Mat channelsBackground[3];
-      cv::split(crop, channelsBackground);
-
-      for (int i = 0; i < 3; ++i) {
-        cv::bitwise_and(channelsBackground[i], mask, channelsBackground[i]);
-        cv::bitwise_and(channels[i], foreMask, channels[i]);
-      }
-
-      // cv::imshow("mask", mask);
-      // cv::imshow("foremask", foreMask);
-      cv::Mat finalBackground, finalForeground;
-      cv::merge(channelsBackground, 3, finalBackground);
-      cv::merge(channels, 3, finalForeground);
-
-      // cv::imshow("Final background", finalBackground);
-      // cv::imshow("Final fore", finalForeground);
-      cv::Mat result = finalBackground + finalForeground;
-      cv::imshow("Result", result);
-    }
-    cv::waitKey(20);
+    cv::Mat cartoonImage = pencilSketch(image);
+    cv::imshow("Cartoon", cartoonImage);
+    cv::waitKey(25);
   }
-
-  cv::waitKey(0);
-
+  cv::destroyAllWindows();
   return 0;
 }
