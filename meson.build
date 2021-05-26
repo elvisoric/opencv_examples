@@ -11,3 +11,4 @@ project_dep = declare_dependency(include_directories: inc_dir, dependencies:[fmt
 executable('check', sources: first_main_src, dependencies:[project_dep])
 
 subdir('part_one')
+subdir('part_two')
