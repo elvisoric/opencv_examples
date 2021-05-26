@@ -16,10 +16,10 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  const auto windowName = "Window";
-  cv::namedWindow(windowName);
+  // const auto windowName = "Window";
+  // cv::namedWindow(windowName);
 
-  cv::setMouseCallback(windowName, onMouse);
+  // cv::setMouseCallback(windowName, onMouse);
 
   const auto backgorundSource = argv[1];
   auto background = cv::imread(backgorundSource);
@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
   // cv::imshow(windowName, image);
   int startPointX = 0;
   int startPointY = 0;
-  cv::VideoCapture cap{1};
+  cv::VideoCapture cap{0};
   auto height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
   auto width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
   // auto height = image.rows;
@@ -87,6 +87,7 @@ int main(int argc, char** argv) {
     cv::waitKey(20);
   }
 
+  std::cout << cap.isOpened() << std::endl;
   cv::waitKey(0);
 
   return 0;
