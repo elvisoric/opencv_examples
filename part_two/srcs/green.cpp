@@ -1,63 +1,58 @@
 #include <opencv2/opencv.hpp>
 
-int main(int argc, char** argv) {
-  if (argc < 2) {
-    std::cout << "Please provide background as parameter" << std::endl;
-    return -1;
+std::vector<cv::Point> dPoints;
+
+void onMouse(int action, int x, int y, int, void*) {
+  if (action == cv::EVENT_LBUTTONDOWN) {
+    std::cout << x << " " << y << std::endl;
+    if (dPoints.size() == 4) dPoints.clear();
+    dPoints.push_back(cv::Point{x, y});
   }
+}
 
-  const auto windowName = "Window";
-  cv::namedWindow(windowName);
+std::vector<cv::Point> sourcePoints(int width, int height) {
+  return {{0, 0}, {width, 0}, {width, height}, {0, height}};
+}
 
-  const auto backgorundSource = argv[1];
-  auto background = cv::imread(backgorundSource);
-
-  cv::imshow("Background", background);
-
-  auto image = cv::imread("images/green.jpg");
+int main() {
+  const auto mainWindow = "Main Window";
+  cv::namedWindow(mainWindow);
+  cv::setMouseCallback(mainWindow, onMouse);
+  auto image = cv::imread("images/bicom.jpg");
   cv::imshow("Image", image);
 
-  cv::resize(background, background, cv::Size(), 0.5, 0.5);
-  cv::imshow(windowName, image);
-  int startPointX = 350;
-  int startPointY = 550;
-  cv::Mat hsv;
-  auto crop = background(cv::Range(startPointY, image.rows + startPointY),
-                         cv::Range(startPointX, image.cols + startPointX));
-  cv::cvtColor(image, hsv, cv::COLOR_BGR2HSV);
-  cv::Mat channels[3];
-  cv::Mat finalResultChannels[3];
-  cv::split(image, channels);
+  cv::VideoCapture cap{1};
+  cv::Mat frame;
+  while (cap.isOpened()) {
+    cap >> frame;
+    if (frame.empty()) break;
+    for (const auto& p : dPoints) {
+      cv::circle(frame, p, 5, cv::Scalar{0, 200, 0}, -1);
+    }
+    if (dPoints.size() == 4) {
+      auto sPoints = sourcePoints(image.cols, image.rows);
+      cv::Mat homography = cv::findHomography(sPoints, dPoints, cv::RANSAC);
+      cv::Mat result, gray, mask, finalResult, maskAll;
+      cv::warpPerspective(image, result, homography, frame.size());
+      cv::cvtColor(result, gray, cv::COLOR_BGR2GRAY);
+      cv::threshold(gray, mask, 2, 255, cv::THRESH_BINARY);
+      cv::bitwise_not(mask, mask);
+      cv::imshow("mask", mask);
 
-  cv::Scalar lower{58, 70, 50};
-  cv::Scalar upper{76, 255, 255};
+      cv::imshow("gray", gray);
+      cv::imshow("Result", result);
+      cv::Mat maskChannels[3] = {mask, mask, mask};
+      cv::merge(maskChannels, 3, maskAll);
 
-  cv::Mat mask, foreMask;
-  cv::inRange(hsv, lower, upper, mask);
-  cv::imshow("mask", mask);
-  cv::bitwise_not(mask, foreMask);
-  cv::imshow("foremask", foreMask);
+      cv::bitwise_and(frame, maskAll, frame);
+      cv::add(frame, result, frame);
+    }
+    cv::imshow(mainWindow, frame);
 
-  cv::Mat channelsBackground[3];
-  cv::split(crop, channelsBackground);
-
-  for (int i = 0; i < 3; ++i) {
-    cv::bitwise_and(channelsBackground[i], mask, channelsBackground[i]);
-    cv::bitwise_and(channels[i], foreMask, channels[i]);
+    cv::waitKey(25);
   }
-  cv::Mat finalBackground, finalForeground;
-  cv::merge(channelsBackground, 3, finalBackground);
-  cv::merge(channels, 3, finalForeground);
 
-  cv::imshow("Final background", finalBackground);
-  cv::imshow("Final fore", finalForeground);
-
-  cv::Mat result = finalBackground + finalForeground;
-
-  cv::imshow("Crop", crop);
-  cv::imshow("Result", result);
-
-  cv::waitKey(0);
+  cv::waitKey();
   cv::destroyAllWindows();
   return 0;
 }
