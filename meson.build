@@ -6,7 +6,7 @@ inc_dir = include_directories('include')
 
 fmt_dep = dependency('fmt')
 opencv_dep = dependency('opencv')
-project_dep = declare_dependency(include_directories: inc_dir, dependencies:[fmt_dep, opencv_dep])
+project_dep = declare_dependency(include_directories: inc_dir, dependencies:[fmt_dep, opencv_dep], cpp_args:['--fvisibility=default'])
 
 executable('check', sources: first_main_src, dependencies:[project_dep])
 

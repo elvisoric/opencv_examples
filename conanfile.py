@@ -3,7 +3,7 @@ import os
 
 class ConanFileToolsTest(ConanFile):
     generators = "pkg_config"
-    requires = ["fmt/7.0.3", "opencv/4.5.2"]
+    requires = ["fmt/7.0.3", "opencv/4.1.2"]
     settings = "os", "compiler", "build_type"
 
     def build(self):
