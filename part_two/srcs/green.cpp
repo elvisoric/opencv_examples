@@ -10,7 +10,7 @@ void onMouse(int action, int x, int y, int, void*) {
   }
 }
 
-std::vector<cv::Point> sourcePoints(int width, int height) {
+std::vector<cv::Point> destinationPoints(int width, int height) {
   return {{0, 0}, {width, 0}, {width, height}, {0, height}};
 }
 
@@ -18,40 +18,25 @@ int main() {
   const auto mainWindow = "Main Window";
   cv::namedWindow(mainWindow);
   cv::setMouseCallback(mainWindow, onMouse);
-  auto image = cv::imread("images/bicom.jpg");
-  cv::imshow("Image", image);
+  auto image = cv::imread("images/sudoku.jpg");
 
-  cv::VideoCapture cap{1};
-  cv::Mat frame;
-  while (cap.isOpened()) {
-    cap >> frame;
-    if (frame.empty()) break;
+  auto cloneImage = image.clone();
+  while (true) {
     for (const auto& p : dPoints) {
-      cv::circle(frame, p, 5, cv::Scalar{0, 200, 0}, -1);
+      cv::circle(image, p, 5, cv::Scalar{0, 200, 0}, -1);
     }
     if (dPoints.size() == 4) {
-      auto sPoints = sourcePoints(image.cols, image.rows);
-      cv::Mat homography = cv::findHomography(sPoints, dPoints, cv::RANSAC);
-      cv::Mat result, gray, mask, finalResult, maskAll;
-      cv::warpPerspective(image, result, homography, frame.size());
-      cv::cvtColor(result, gray, cv::COLOR_BGR2GRAY);
-      cv::threshold(gray, mask, 2, 255, cv::THRESH_BINARY);
-      cv::bitwise_not(mask, mask);
-      cv::imshow("mask", mask);
-
-      cv::imshow("gray", gray);
+      auto sPoints = dPoints;
+      auto destPoints = destinationPoints(1000, 1000);
+      cv::Mat homography = cv::findHomography(sPoints, destPoints, cv::RANSAC);
+      cv::Mat result;
+      cv::warpPerspective(cloneImage, result, homography, cv::Size(1000, 1000));
       cv::imshow("Result", result);
-      cv::Mat maskChannels[3] = {mask, mask, mask};
-      cv::merge(maskChannels, 3, maskAll);
-
-      cv::bitwise_and(frame, maskAll, frame);
-      cv::add(frame, result, frame);
     }
-    cv::imshow(mainWindow, frame);
+    cv::imshow(mainWindow, image);
 
     cv::waitKey(25);
   }
-
   cv::waitKey();
   cv::destroyAllWindows();
   return 0;
