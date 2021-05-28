@@ -1,69 +1,44 @@
 #include <opencv2/opencv.hpp>
 
-int main(int argc, char** argv) {
-  if (argc < 2) {
-    std::cout << "Please provide background image" << std::endl;
-    return -1;
+std::vector<cv::Point> sPoints;
+void onMouse(int action, int x, int y, int, void*) {
+  if (action == cv::EVENT_LBUTTONDOWN) {
+    std::cout << x << " " << y << std::endl;
+    if (sPoints.size() == 4) sPoints.clear();
+    sPoints.push_back(cv::Point{x, y});
   }
+}
 
-  const auto backgroundSource = argv[1];
-  auto background = cv::imread(backgroundSource);
-  cv::imshow("Background", background);
+std::vector<cv::Point> destinationPoints(int width, int height) {
+  return {{0, 0}, {width, 0}, {width, height}, {0, height}};
+}
 
+int main() {
+  const auto mainWindow = "Main Window";
+  cv::namedWindow(mainWindow);
+  cv::setMouseCallback(mainWindow, onMouse);
+  auto bicom = cv::imread("images/bicom.jpg");
+  cv::imshow("Bicom", bicom);
   cv::VideoCapture cap{1};
-  int width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
-  int height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
-  int startPointX = 350;
-  int startPointY = 550;
-
-  auto crop = background(cv::Range(startPointY, height + startPointY),
-                         cv::Range(startPointX, width + startPointX));
-  cv::resize(background, background, cv::Size(), 0.5, 0.5);
-
-  cv::imshow("crop", crop);
+  auto capWidth = cap.get(cv::CAP_PROP_FRAME_WIDTH);
+  auto capHeight = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
   cv::Mat image;
   while (cap.isOpened()) {
     cap >> image;
     if (image.empty()) break;
 
-    cv::Mat hsv;
-    cv::cvtColor(image, hsv, cv::COLOR_BGR2HSV);
-
-    cv::Scalar lower{58, 70, 50};
-    cv::Scalar upper{76, 255, 255};
-
-    cv::Mat mask, foreMask;
-    cv::inRange(hsv, lower, upper, mask);
-
-    auto kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(7, 7));
-    cv::Mat maskDialated;
-    cv::dilate(mask, mask, kernel);
-
-    cv::bitwise_not(mask, foreMask);
-
-    cv::imshow("mask", mask);
-    cv::imshow("foreMask", foreMask);
-
-    cv::Mat channelsBackground[3];
-    cv::split(crop, channelsBackground);
-
-    cv::Mat channels[3];
-    cv::split(image, channels);
-
-    for (int i = 0; i < 3; ++i) {
-      cv::bitwise_and(channelsBackground[i], mask, channelsBackground[i]);
-      cv::bitwise_and(channels[i], foreMask, channels[i]);
+    for (const auto& p : sPoints) {
+      cv::circle(image, p, 5, cv::Scalar{0, 200, 0}, -1);
     }
-    cv::Mat finalBackground, finalForeground;
-    cv::merge(channelsBackground, 3, finalBackground);
-    cv::imshow("Final Background", finalBackground);
-    cv::merge(channels, 3, finalForeground);
-    cv::imshow("Final Foreground", finalForeground);
-
-    cv::Mat result = finalBackground + finalForeground;
-    cv::imshow("Result", result);
-
-    // cv::imshow("Image", image);
+    if (sPoints.size() == 4) {
+      auto dPoints = destinationPoints(capWidth, capHeight);
+      cv::Mat homography = cv::findHomography(dPoints, sPoints, cv::RANSAC);
+      cv::Mat result;
+      cv::warpPerspective(bicom, result, homography,
+                          cv::Size(capWidth, capHeight));
+      cv::imshow("Result", result);
+    }
+    cv::imshow(mainWindow, image);
     cv::waitKey(25);
   }
 
