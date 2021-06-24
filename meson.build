@@ -12,3 +12,4 @@ executable('check', sources: first_main_src, dependencies:[project_dep])
 
 subdir('part_one')
 subdir('part_two')
+subdir('part_three')
