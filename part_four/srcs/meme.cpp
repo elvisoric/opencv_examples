@@ -33,16 +33,8 @@ void renderFace(cv::Mat& image, const dlib::full_object_detection& landmarks) {
   drawPolyline(image, landmarks, 60, 67, true);  // Inner lip
 }
 
-int main(int argc, char** argv) {
-  auto faceDetector = dlib::get_frontal_face_detector();
-  if (argc < 2) {
-    std::cout << "Please provide input image" << std::endl;
-    return -1;
-  }
-  auto image = cv::imread(argv[1]);
-  auto glasses = cv::imread("images/tr.png", cv::IMREAD_UNCHANGED);
-  auto cigar = cv::imread("images/cigar.png", cv::IMREAD_UNCHANGED);
-
+void thugLife(cv::Mat& image, cv::Mat& glasses, cv::Mat& cigar,
+              dlib::frontal_face_detector& faceDetector) {
   dlib::cv_image<dlib::bgr_pixel> dlibImage{image};
   std::vector<dlib::rectangle> faces = faceDetector(dlibImage);
 
@@ -104,14 +96,32 @@ int main(int argc, char** argv) {
     cv::Mat maskedCigar;
     cv::merge(channelsCigarRoi, 3, maskedCigar);
     maskedCigar.copyTo(cigarRoi);
-
-    cv::imshow("cigarMask", cigarMask);
-    cv::imshow("cigarRoi", cigarRoi);
   }
-
   cv::imshow("Image", image);
-  cv::imshow("glasses", glasses);
-  cv::imshow("cigar", cigar);
+}
+
+int main(int argc, char** argv) {
+  auto faceDetector = dlib::get_frontal_face_detector();
+  // if (argc < 2) {
+  //   std::cout << "Please provide input image" << std::endl;
+  //   return -1;
+  // }
+  // auto image = cv::imread(argv[1]);
+  auto glasses = cv::imread("images/tr.png", cv::IMREAD_UNCHANGED);
+  auto cigar = cv::imread("images/cigar.png", cv::IMREAD_UNCHANGED);
+
+  cv::VideoCapture cap{0};
+  cv::Mat frame;
+  while (cap.isOpened()) {
+    cap >> frame;
+    if (frame.empty()) break;
+    cv::imshow("Frame", frame);
+    auto key = cv::waitKey(25);
+    if (key == int('m')) {
+      auto clone = frame.clone();
+      thugLife(clone, glasses, cigar, faceDetector);
+    }
+  }
 
   cv::waitKey();
   cv::destroyAllWindows();
