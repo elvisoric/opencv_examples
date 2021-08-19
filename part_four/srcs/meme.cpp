@@ -40,10 +40,11 @@ int main(int argc, char** argv) {
     return -1;
   }
   auto image = cv::imread(argv[1]);
+  auto glasses = cv::imread("images/tr.png", cv::IMREAD_UNCHANGED);
+  auto cigar = cv::imread("images/cigar.png", cv::IMREAD_UNCHANGED);
 
   dlib::cv_image<dlib::bgr_pixel> dlibImage{image};
   std::vector<dlib::rectangle> faces = faceDetector(dlibImage);
-  std::cout << "Number of faces detected: " << faces.size() << std::endl;
 
   const std::string predictorPath =
       "data/models/shape_predictor_68_face_landmarks.dat";
@@ -52,15 +53,66 @@ int main(int argc, char** argv) {
 
   for (const auto& face : faces) {
     dlib::full_object_detection landmarks = landmarkDetector(dlibImage, face);
-    std::cout << landmarks.num_parts() << std::endl;
-    cv::rectangle(image, cv::Point(face.left(), face.top()),
-                  cv::Point(face.right(), face.bottom()),
-                  cv::Scalar{0, 255, 0});
-    // renderLandmarks(image, landmarks);
-    renderFace(image, landmarks);
+    auto diff = landmarks.part(16).x() - landmarks.part(0).x();
+    double p = static_cast<double>(diff) / glasses.cols;
+    cv::resize(glasses, glasses, cv::Size(diff, glasses.rows * p));
+
+    cv::Rect r(landmarks.part(0).x(), landmarks.part(36).y() - glasses.rows / 2,
+               diff, glasses.rows);
+    cv::Mat roi = image(r);
+    cv::imshow("roi", roi);
+    cv::Mat channels[3];
+    cv::Mat channelsGlasses[4];
+    cv::split(roi, channels);
+    cv::split(glasses, channelsGlasses);
+    cv::Mat mask;
+    cv::bitwise_not(channelsGlasses[3], mask);
+    cv::imshow("mask", mask);
+
+    cv::bitwise_and(channels[0], mask, channels[0]);
+    cv::add(channels[0], channelsGlasses[0], channels[0]);
+    cv::bitwise_and(channels[1], mask, channels[1]);
+    cv::add(channels[1], channelsGlasses[1], channels[1]);
+    cv::bitwise_and(channels[2], mask, channels[2]);
+    cv::add(channels[2], channelsGlasses[2], channels[2]);
+
+    cv::Mat maskedEyes;
+    cv::merge(channels, 3, maskedEyes);
+    maskedEyes.copyTo(roi);
+
+    auto mDiff = landmarks.part(54).x() - landmarks.part(48).x();
+    double mp = static_cast<double>(mDiff) / cigar.cols;
+    cv::resize(cigar, cigar, cv::Size(mDiff, cigar.rows * mp));
+    cv::Rect rCigar(landmarks.part(66).x() - cigar.size().width,
+                    landmarks.part(66).y(), mDiff, cigar.rows);
+
+    cv::Mat cigarMask;
+    cv::Mat channelsCigarRoi[3];
+    cv::Mat channelsCigar[4];
+    auto cigarRoi = image(rCigar);
+
+    cv::split(cigarRoi, channelsCigarRoi);
+    cv::split(cigar, channelsCigar);
+    cv::bitwise_not(channelsCigar[3], cigarMask);
+    cv::bitwise_and(channelsCigarRoi[0], cigarMask, channelsCigarRoi[0]);
+    cv::add(channelsCigarRoi[0], channelsCigar[0], channelsCigarRoi[0]);
+    cv::bitwise_and(channelsCigarRoi[1], cigarMask, channelsCigarRoi[1]);
+    cv::add(channelsCigarRoi[1], channelsCigar[1], channelsCigarRoi[1]);
+    cv::bitwise_and(channelsCigarRoi[2], cigarMask, channelsCigarRoi[2]);
+    cv::add(channelsCigarRoi[2], channelsCigar[2], channelsCigarRoi[2]);
+
+    cv::Mat maskedCigar;
+    cv::merge(channelsCigarRoi, 3, maskedCigar);
+    maskedCigar.copyTo(cigarRoi);
+
+    cv::imshow("cigarMask", cigarMask);
+    cv::imshow("cigarRoi", cigarRoi);
   }
 
   cv::imshow("Image", image);
+  cv::imshow("glasses", glasses);
+  cv::imshow("cigar", cigar);
+
   cv::waitKey();
   cv::destroyAllWindows();
   return 0;
