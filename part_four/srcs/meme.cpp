@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
 
   auto faceDetector = dlib::get_frontal_face_detector();
 
-  cv::VideoCapture cap{1};
+  cv::VideoCapture cap{0};
   cv::Mat frame;
   while (cap.isOpened()) {
     cap >> frame;
