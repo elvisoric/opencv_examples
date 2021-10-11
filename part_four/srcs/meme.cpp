@@ -50,9 +50,9 @@ void thugLife(cv::Mat& image, cv::Mat& glasses, cv::Mat& cigar,
     cv::Rect r(landmarks.part(0).x(), landmarks.part(36).y() - glasses.rows / 2,
                glasses.cols, glasses.rows);
     cv::Mat roi = image(r);
-    std::cout << roi.size() << std::endl;
-    std::cout << glasses.size() << std::endl;
-    cv::imshow("roi", roi);
+    // std::cout << roi.size() << std::endl;
+    // std::cout << glasses.size() << std::endl;
+    // cv::imshow("roi", roi);
 
     cv::Mat channels[3];
     cv::Mat channelsGlasses[4];
@@ -60,7 +60,7 @@ void thugLife(cv::Mat& image, cv::Mat& glasses, cv::Mat& cigar,
     cv::split(glasses, channelsGlasses);
     cv::Mat mask;
     cv::bitwise_not(channelsGlasses[3], mask);
-    cv::imshow("mask", mask);
+    // cv::imshow("mask", mask);
 
     cv::bitwise_and(channels[0], mask, channels[0]);
     cv::add(channels[0], channelsGlasses[0], channels[0]);
@@ -109,21 +109,21 @@ int main(int argc, char** argv) {
 
   auto faceDetector = dlib::get_frontal_face_detector();
 
-  cv::VideoCapture cap{0};
+  cv::VideoCapture cap{1};
   cv::Mat frame;
   while (cap.isOpened()) {
     cap >> frame;
     if (frame.empty()) break;
-    cv::imshow("Frame", frame);
-    int key = cv::waitKey(25);
-    if (key == int('m')) {
-      auto image = frame.clone();
-      thugLife(image, glasses, cigar, faceDetector);
-    }
+    // cv::imshow("Frame", frame);
+    thugLife(frame, glasses, cigar, faceDetector);
+    cv::waitKey(25);
+    // if (key == int('m')) {
+    // auto image = frame.clone();
+    // }
   }
 
-  cv::imshow("glasses", glasses);
-  cv::imshow("cigar", cigar);
+  // cv::imshow("glasses", glasses);
+  // cv::imshow("cigar", cigar);
   cv::waitKey();
   cv::destroyAllWindows();
 
