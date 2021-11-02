@@ -14,11 +14,19 @@ std::vector<cv::Point> destinationPoints(int width, int height) {
   return {{0, 0}, {width, 0}, {width, height}, {0, height}};
 }
 
-int main() {
+const double factor = 0.5;
+auto width = 2480 * factor;
+auto height = 3508 * factor;
+
+int main(int argc, char** argv) {
+  if (argc < 2) {
+    std::cout << "Please provide image" << std::endl;
+    return -1;
+  }
   const auto mainWindow = "Main Window";
   cv::namedWindow(mainWindow);
   cv::setMouseCallback(mainWindow, onMouse);
-  auto image = cv::imread("images/sudoku.jpg");
+  auto image = cv::imread(argv[1]);
 
   auto cloneImage = image.clone();
   while (true) {
@@ -27,11 +35,13 @@ int main() {
     }
     if (dPoints.size() == 4) {
       auto sPoints = dPoints;
-      auto destPoints = destinationPoints(1000, 1000);
+      auto destPoints = destinationPoints(width, height);
       cv::Mat homography = cv::findHomography(sPoints, destPoints, cv::RANSAC);
       cv::Mat result;
-      cv::warpPerspective(cloneImage, result, homography, cv::Size(1000, 1000));
+      cv::warpPerspective(cloneImage, result, homography,
+                          cv::Size(width, height));
       cv::imshow("Result", result);
+      cv::imwrite("result.jpg", result);
     }
     cv::imshow(mainWindow, image);
 
