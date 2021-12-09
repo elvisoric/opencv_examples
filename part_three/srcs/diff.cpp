@@ -29,27 +29,34 @@ int main() {
   // black mask
   cv::imshow("mask", mask);
 
-  cv::Mat hsv;
-  cv::Mat hsvChannels[3];
-  cv::cvtColor(second, hsv, cv::COLOR_BGR2HSV);
-  cv::split(hsv, hsvChannels);
-  auto valueClone = hsvChannels[2].clone();
+  std::vector<std::vector<cv::Point>> contours;
+  std::vector<cv::Vec4i> hierarchy;
 
-  hsvChannels[2] *= 0.4;
-  cv::bitwise_and(valueClone, mask, valueClone);
-  cv::Mat maskInv;
-  cv::bitwise_not(mask, maskInv);
-  cv::bitwise_and(hsvChannels[2], maskInv, hsvChannels[2]);
+  cv::findContours(mask, contours, hierarchy, cv::RETR_LIST,
+                   cv::CHAIN_APPROX_SIMPLE);
+  auto rect = cv::minAreaRect(contours);
 
-  hsvChannels[2] += valueClone;
-  cv::merge(hsvChannels, 3, hsv);
-
-  cv::imshow("hsvChannels[2]", hsvChannels[2]);
-  cv::imshow("valueClone", valueClone);
-
-  cv::Mat result;
-  cv::cvtColor(hsv, result, cv::COLOR_HSV2BGR);
-  cv::imshow("result", result);
+  // cv::Mat hsv;
+  // cv::Mat hsvChannels[3];
+  // cv::cvtColor(second, hsv, cv::COLOR_BGR2HSV);
+  // cv::split(hsv, hsvChannels);
+  // auto valueClone = hsvChannels[2].clone();
+  //
+  // hsvChannels[2] *= 0.4;
+  // cv::bitwise_and(valueClone, mask, valueClone);
+  // cv::Mat maskInv;
+  // cv::bitwise_not(mask, maskInv);
+  // cv::bitwise_and(hsvChannels[2], maskInv, hsvChannels[2]);
+  //
+  // hsvChannels[2] += valueClone;
+  // cv::merge(hsvChannels, 3, hsv);
+  //
+  // cv::imshow("hsvChannels[2]", hsvChannels[2]);
+  // cv::imshow("valueClone", valueClone);
+  //
+  // cv::Mat result;
+  // cv::cvtColor(hsv, result, cv::COLOR_HSV2BGR);
+  // cv::imshow("result", result);
 
   cv::waitKey();
   cv::destroyAllWindows();
