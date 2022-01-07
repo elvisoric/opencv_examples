@@ -32,10 +32,22 @@ void renderFace(cv::Mat& image, dlib::full_object_detection& landmarks) {
   drawPolylines(image, landmarks, 60, 67, true);  // Inner lip
 }
 
+dlib::cv_image<dlib::bgr_pixel> dlibImage;
+int calls = 0;
+std::vector<dlib::rectangle> faces;
+
 void thugLife(cv::Mat& image, cv::Mat& glasses, cv::Mat& cigar,
               dlib::frontal_face_detector& faceDetector) {
-  dlib::cv_image<dlib::bgr_pixel> dlibImage{image};
-  std::vector<dlib::rectangle> faces = faceDetector(dlibImage);
+  cv::resize(image, image, cv::Size(), 0.5, 0.5);
+
+  if (calls % 10 == 0) {
+    dlibImage = dlib::cv_image<dlib::bgr_pixel>{image};
+    faces = faceDetector(dlibImage);
+    std::cout << "Detect: " << calls << std::endl;
+  } else {
+    std::cout << "Skip: " << calls << std::endl;
+  }
+  ++calls;
 
   const std::string predictorPath =
       "data/models/shape_predictor_68_face_landmarks.dat";
@@ -111,15 +123,35 @@ int main(int argc, char** argv) {
 
   cv::VideoCapture cap{0};
   cv::Mat frame;
+  // cv::Mat image;
+  std::vector<dlib::rectangle> faces;
+  dlib::full_object_detection landmarks;
+  int calls = 0;
+  const std::string predictorPath =
+      "data/models/shape_predictor_68_face_landmarks.dat";
+  dlib::shape_predictor landmarkDetector;
+  dlib::deserialize(predictorPath) >> landmarkDetector;
   while (cap.isOpened()) {
     cap >> frame;
+    auto& image = frame;
     if (frame.empty()) break;
+    if (calls % 2 == 0) {
+      // cv::resize(frame, image, cv::Size(), 0.5, 0.5);
+      dlib::cv_image<dlib::bgr_pixel> dImage{image};
+      faces = faceDetector(dImage);
+      std::cout << faces.size() << std::endl;
+      for (const auto& face : faces) {
+        landmarks = landmarkDetector(dlibImage, face);
+      }
+    } else {
+      std::cout << faces.size() << " Skip" << std::endl;
+    }
+    renderLandmarks(image, landmarks);
+
+    ++calls;
+    cv::waitKey(20);
     // cv::imshow("Frame", frame);
-    thugLife(frame, glasses, cigar, faceDetector);
-    cv::waitKey(25);
-    // if (key == int('m')) {
-    // auto image = frame.clone();
-    // }
+    cv::imshow("Image", image);
   }
 
   // cv::imshow("glasses", glasses);
